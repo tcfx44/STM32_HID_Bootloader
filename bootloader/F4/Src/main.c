@@ -130,11 +130,11 @@ int main(void)
 
   /* USER CODE BEGIN SysInit */
   MX_GPIO_Init();
-   
+
   HAL_Delay(100);
-  
+
   magic_val = LL_RTC_BAK_GetRegister(RTC, HID_MAGIC_NUMBER_BKP_INDEX);
-  
+
   /* In case of incoming magic number or <BOOT_1_PIN> is LOW,
     jump to HID bootloader */
 #ifdef IS_WEACT_BOARD
@@ -153,31 +153,31 @@ int main(void)
     __set_MSP(*(uint32_t *) (FLASH_BASE + USER_CODE_OFFSET));
     Jump_To_Application();
   }
-  
+
   /* Reset the magic number backup memory */
-  
+
   /* Enable Power Clock */
   __HAL_RCC_PWR_CLK_ENABLE();
-  
+
   /* Allow access to Backup domain */
   LL_PWR_EnableBkUpAccess();
-  
+
   LL_RTC_BAK_SetRegister(RTC, HID_MAGIC_NUMBER_BKP_INDEX, 0);
-  
+
   /* Forbid access to Backup domain */
   LL_PWR_DisableBkUpAccess();
-  
+
   /* USER CODE END SysInit */
-  
+
   /* Initialize all configured peripherals */
-  
+
   MX_USB_DEVICE_Init();
 
   /* USER CODE BEGIN 2 */
-                                               
+
   static volatile uint32_t current_Page = (USER_CODE_OFFSET / 1024);
   static volatile uint16_t currentPageOffset = 0;
-                                                           
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -325,12 +325,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
- 
-                               
-                                  
-                                        
-                                    
-                                              
 
   /* Configure GPIO pin : PB2 */
   GPIO_InitStruct.Pin = BOOT_1_PIN;
@@ -358,7 +352,7 @@ void write_flash_sector(uint32_t currentPage) {
   HAL_GPIO_WritePin(LED_1_PORT, LED_1_PIN, GPIO_PIN_SET);	
   FLASH_EraseInitTypeDef EraseInit;
   HAL_FLASH_Unlock();
-  
+
   /* Sector to the erase the flash memory (16, 32, 48 ... kbytes) */
   if ((currentPage == 16) || (currentPage == 32) ||
       (currentPage == 48) || (currentPage == 64) ||
@@ -366,12 +360,10 @@ void write_flash_sector(uint32_t currentPage) {
     EraseInit.TypeErase = FLASH_TYPEERASE_SECTORS;
     EraseInit.VoltageRange  = FLASH_VOLTAGE_RANGE_3;
 #ifdef IS_WEACT_BOARD
-    EraseInit.Banks = FLASH_BANK_1; 
+    EraseInit.Banks = FLASH_BANK_1;
 #endif
     /* Specify sector number. Starts from 0x08004000 */
     EraseInit.Sector = erase_page++;
-                                              
-  
 
     /* This is also important! */
     EraseInit.NbSectors = 1;
