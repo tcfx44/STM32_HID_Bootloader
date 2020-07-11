@@ -137,23 +137,21 @@ int main(void)
   
   /* In case of incoming magic number or <BOOT_1_PIN> is LOW,
     jump to HID bootloader */
-#if Is_WeAct_Board == 1 
-  if ((HAL_GPIO_ReadPin(BOOT_1_PORT, BOOT_1_PIN) != BOOT_1_ENABLED)) {
-    HAL_GPIO_WritePin(LED_1_PORT, LED_1_PIN, GPIO_PIN_SET);	
+#ifdef IS_WEACT_BOARD
+  if ((HAL_GPIO_ReadPin(BOOT_1_PORT, BOOT_1_PIN) != BOOT_1_ENABLED) &&
+             (((*(__IO uint32_t*)FLASH_BASE + USER_CODE_OFFSET) & 0x2FF80000 ) == 0x20000000)) {
+    HAL_GPIO_WritePin(LED_1_PORT, LED_1_PIN, GPIO_PIN_SET);
 #else
   if ((magic_val != 0x424C)&&(HAL_GPIO_ReadPin(BOOT_1_PORT, BOOT_1_PIN) != BOOT_1_ENABLED)) {
 #endif
-    if(((*(__IO uint32_t*)FLASH_BASE + USER_CODE_OFFSET) & 0x2FF80000 ) == 0x20000000) {
-      typedef void (*pFunction)(void);
-      pFunction Jump_To_Application;
-      uint32_t JumpAddress;
-      
-      JumpAddress = *(__IO uint32_t*) (FLASH_BASE + USER_CODE_OFFSET + 4);
-      Jump_To_Application = (pFunction) JumpAddress;
-      __set_MSP(*(uint32_t *) (FLASH_BASE + USER_CODE_OFFSET));
-      
-      Jump_To_Application(); 
-    }
+    typedef void (*pFunction)(void);
+    pFunction Jump_To_Application;
+    uint32_t JumpAddress;
+
+    JumpAddress = *(__IO uint32_t*) (FLASH_BASE + USER_CODE_OFFSET + 4);
+    Jump_To_Application = (pFunction) JumpAddress;
+    __set_MSP(*(uint32_t *) (FLASH_BASE + USER_CODE_OFFSET));
+    Jump_To_Application();
   }
   
   /* Reset the magic number backup memory */
@@ -251,23 +249,21 @@ void SystemClock_Config(void)
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   /* Initializes the CPU, AHB and APB busses clocks (72 MHz) */
-
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-
-#if HSE_VALUE  == 8000000
+#ifndef IS_WEACT_BOARD
   RCC_OscInitStruct.PLL.PLLM = 4;
   RCC_OscInitStruct.PLL.PLLN = 72;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 3;
-  #else
+#else
   RCC_OscInitStruct.PLL.PLLM = 15;
   RCC_OscInitStruct.PLL.PLLN = 144;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
   RCC_OscInitStruct.PLL.PLLQ = 5;
-  #endif
+#endif
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
     _Error_Handler(__FILE__, __LINE__);
   }
@@ -280,7 +276,11 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+#ifndef IS_WEACT_BOARD
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK) {
+#else
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) {
+#endif
     _Error_Handler(__FILE__, __LINE__);
   }
 
@@ -306,12 +306,16 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct;
 
   /* GPIO Ports Clock Enable */
-  // __HAL_RCC_GPIOH_CLK_ENABLE();
+#ifndef IS_WEACT_BOARD
+  __HAL_RCC_GPIOH_CLK_ENABLE();
+#endif
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
-  // __HAL_RCC_GPIOD_CLK_ENABLE();
-  // __HAL_RCC_GPIOE_CLK_ENABLE();
+#ifndef IS_WEACT_BOARD
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
+#endif
 
   /* Configure GPIO pin Output Level */
 
@@ -331,7 +335,11 @@ static void MX_GPIO_Init(void)
   /* Configure GPIO pin : PB2 */
   GPIO_InitStruct.Pin = BOOT_1_PIN;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+#ifndef IS_WEACT_BOARD
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+#else
   GPIO_InitStruct.Pull = GPIO_PULLUP;
+#endif
   HAL_GPIO_Init(BOOT_1_PORT, &GPIO_InitStruct);
 
   /* Configure GPIO pin : PE0 */
@@ -351,15 +359,15 @@ void write_flash_sector(uint32_t currentPage) {
   FLASH_EraseInitTypeDef EraseInit;
   HAL_FLASH_Unlock();
   
-                                                                                                         
-
   /* Sector to the erase the flash memory (16, 32, 48 ... kbytes) */
   if ((currentPage == 16) || (currentPage == 32) ||
       (currentPage == 48) || (currentPage == 64) ||
       (currentPage % 128 == 0)) {
     EraseInit.TypeErase = FLASH_TYPEERASE_SECTORS;
     EraseInit.VoltageRange  = FLASH_VOLTAGE_RANGE_3;
+#ifdef IS_WEACT_BOARD
     EraseInit.Banks = FLASH_BANK_1; 
+#endif
     /* Specify sector number. Starts from 0x08004000 */
     EraseInit.Sector = erase_page++;
                                               
