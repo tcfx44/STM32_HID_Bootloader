@@ -81,45 +81,25 @@ int main(int argc, char *argv[]) {
   printf  ("|   Customized for STM32duino ecosystem   https://www.stm32duino.com    |\n");
   printf  ("+-----------------------------------------------------------------------+\n\n");
   
-  if(argc == 1) {
+  if(argc < 3) {
     printf("Usage: hid-flash <bin_firmware_file> <comport> <delay (optional)>\n");
-    printf("  <Searching HID device test>\n");
-    //return 1;
+    return 1;
   }else if(argc == 4){
     _timer = atol(argv[3]);
   }
-
-  if (argv[1] != NULL)
-  {
-    firmware_file = fopen(argv[1], "rb");
-    if(!firmware_file) {
-      printf("> Error opening firmware file: %s\n", argv[1]);
-      return error;
-    }
-  }
-  else
-  {
-    printf("> None Firmware file\n");
+  
+  firmware_file = fopen(argv[1], "rb");
+  if(!firmware_file) {
+    printf("> Error opening firmware file: %s\n", argv[1]);
+    return error;
   }
   
-
-  if (argv[2] != NULL)
-  {
-    if (serial_init(argv[2], _timer) == 0)
-    { //Setting up Serial port
-      RS232_CloseComport();
-    }
-    else
-    {
-      printf("> Unable to open the [%s]\n", argv[2]);
-    }
-  }
-  else
-  {
-    printf("> None Serial port\n");
+  if(serial_init(argv[2], _timer) == 0){ //Setting up Serial port
+    RS232_CloseComport();
+  }else{
+    printf("> Unable to open the [%s]\n",argv[2]);
   }
   
-
   hid_init();
   
   printf("> Searching for [%04X:%04X] device...\n",VID,PID);
@@ -161,11 +141,6 @@ int main(int argc, char *argv[]) {
  
   printf("\n> [%04X:%04X] device is found !\n",VID,PID);
   
-  if (argv[1] == NULL)
-  {
-    error = 1;
-    goto exit;
-  }
   // Send RESET PAGES command to put HID bootloader in initial stage...
   memset(hid_tx_buf, 0, sizeof(hid_tx_buf)); //Fill the hid_tx_buf with zeros.
   memcpy(&hid_tx_buf[1], CMD_RESET_PAGES, sizeof(CMD_RESET_PAGES));
@@ -240,21 +215,18 @@ exit:
     fclose(firmware_file);
   }
   
-  if (argv[2] != NULL)
-  {
-    printf("> Searching for [%s] ...\n",argv[2]);
+  printf("> Searching for [%s] ...\n",argv[2]);
 
-    for(int i=0;i<5;i++){
-      if(RS232_OpenComport(argv[2]) == 0){
-        printf("> [%s] is found !\n",argv[2] );
-        break;
-      }
-      sleep(1);
+  for(int i=0;i<5;i++){
+    if(RS232_OpenComport(argv[2]) == 0){
+      printf("> [%s] is found !\n",argv[2] );
+      break;
     }
-    
-    if(i==5){
-      printf("> Comport is not found\n");
-    }
+    sleep(1);
+  }
+  
+  if(i==5){
+    printf("> Comport is not found\n");
   }
   printf("> Finish\n");
   
