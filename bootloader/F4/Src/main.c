@@ -138,12 +138,10 @@ int main(void)
   /* In case of incoming magic number or <BOOT_1_PIN> is LOW,
     jump to HID bootloader */
 #ifdef IS_WEACT_BOARD
-  if ((HAL_GPIO_ReadPin(BOOT_1_PORT, BOOT_1_PIN) != BOOT_1_ENABLED) &&
-             (((*(__IO uint32_t*)FLASH_BASE + USER_CODE_OFFSET) & 0x2FF80000 ) == 0x20000000)) {
-    HAL_GPIO_WritePin(LED_1_PORT, LED_1_PIN, GPIO_PIN_SET);
-#else
-  if ((magic_val != 0x424C)&&(HAL_GPIO_ReadPin(BOOT_1_PORT, BOOT_1_PIN) != BOOT_1_ENABLED)) {
+  #warning "Assuming we're building for WeAct F411"
 #endif
+  if ((magic_val != 0x424C)&&(HAL_GPIO_ReadPin(BOOT_1_PORT, BOOT_1_PIN) != BOOT_1_ENABLED)) {
+    HAL_GPIO_WritePin(LED_1_PORT, LED_1_PIN, GPIO_PIN_SET);
     typedef void (*pFunction)(void);
     pFunction Jump_To_Application;
     uint32_t JumpAddress;
